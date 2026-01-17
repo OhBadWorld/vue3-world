@@ -4,12 +4,18 @@ function isObject(value) {
 }
 
 // packages/reactivity/src/effect.ts
-function effect(fn, options = {}) {
+function effect(fn, options) {
   const _effect = new ReactiveEffect(fn, () => {
     _effect.run();
   });
   _effect.run();
-  return _effect;
+  if (options) {
+    console.log("options", options);
+    Object.assign(_effect, options);
+  }
+  const runner = _effect.run.bind(_effect);
+  runner.effect = _effect;
+  return runner;
 }
 var activeEffect = null;
 function preCleanEffect(effect2) {
@@ -81,6 +87,7 @@ function trackEffect(dep, effect2) {
 }
 function triggerEffect(dep) {
   for (let effect2 of dep.keys()) {
+    console.log("effect", effect2);
     if (effect2.scheduler) {
       effect2.scheduler();
     } else {

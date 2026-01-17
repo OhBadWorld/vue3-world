@@ -1,5 +1,5 @@
 // 处理副作用的
-export function effect(fn, options: any = {}) {
+export function effect(fn, options?) {
   // 创建一个响应式effect 数据变化之后，会重新执行fn函数
 
   // 创建一个effect, 只要依赖的属性变化了，就要执行回调（调度函数）
@@ -10,7 +10,13 @@ export function effect(fn, options: any = {}) {
   });
   _effect.run(); // 默认就要执行一次
 
-  return _effect;
+  if (options) {
+    console.log('options', options);
+    Object.assign(_effect, options); // 用用户传的函数，覆盖掉内置的
+  }
+  const runner = _effect.run.bind(_effect); // 绑定this指向
+  runner.effect = _effect; // 可以在run方法上获取到effect的引用
+  return runner; // 外界可以用到这个runner
 }
 
 export let activeEffect: ReactiveEffect | null = null; // 全局变量， 表示当前激活的effect
@@ -120,9 +126,11 @@ export function trackEffect(dep, effect) {
 export function triggerEffect(dep) { // dep 是属性的依赖map 就是映射表（一个属性可能对应多个effect）
   // 触发依赖的effect， 收集的时候是一个个收集，触发的时候可能会多个同时触发
   for (let effect of dep.keys()) {
+    console.log('effect', effect);
     if (effect.scheduler) {
       effect.scheduler(); // -> 等价于effect.run()
-    } else {
+    }
+    else {
       effect.run();
     }
   }

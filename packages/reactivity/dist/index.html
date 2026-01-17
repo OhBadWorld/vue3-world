@@ -30,19 +30,25 @@
     // }, 1000);
 
     // 条件渲染 引出依赖清理的由来
-    effect(() => {
+    let runner = effect(() => {
       console.log('runner');
       app.innerHTML = state1.flag ? '姓名：' + state1.name : '年龄：' + state1.age;
+    }, {
+      // 调度器
+      scheduler: () => {
+        console.log('scheduler，数据更新了，不重新渲染，走自己的逻辑');
+        runner();
+      }
     })
 
    
     setTimeout(() => {
       state1.flag = false
 
-      setTimeout(() => {
-        console.log('state1.name 不应该变成李四',);
-        state1.name = '李四';
-      }, 2000);
+      // setTimeout(() => {
+      //   console.log('state1.name 不应该变成李四',);
+      //   state1.name = '李四';
+      // }, 2000);
     }, 1000);
     // 我们需要一个算法，来对比不同分支切换的差异，diff算法
     // 1. 对比两个分支的差异
