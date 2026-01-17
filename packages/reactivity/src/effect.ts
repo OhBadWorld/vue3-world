@@ -14,6 +14,28 @@ export function effect(fn, options: any = {}) {
 }
 
 export let activeEffect: ReactiveEffect | null = null; // 全局变量， 表示当前激活的effect
+function preCleanEffect(effect) {
+  // 清除effect 中的依赖
+  effect._depsLength = 0; // 依赖长度清空
+  effect._trackId++; // 如果是当前同一个effect执行 都要增加一次_trackId
+}
+
+function postCleanEffect(effect) {
+  // 老的effect.deps => [flag, name, xxxx, bbbb, ...]  // 多余的(xxxx,bbbb, xxx) 都需要删掉
+  // 当前的effect.deps => [flag, age]
+
+  // 清除effect 中的依赖
+  if (effect.deps.length > effect._depsLength) {
+    // 清除effect 中的依赖
+    for (let i = effect._depsLength; i < effect.deps.length; i++) {
+      cleanDepEffect(effect, effect.deps[i]); // 删除映射表中对应的多余的effect
+    }
+    effect.deps.length = effect._depsLength; // 依赖长度更新
+    // 先删除targetMap中的关系 再改变数组
+  }
+}
+
+
 
 // 后续 effectSoped.stop()  方法 可以停止所有的effect 不参加响应式处理
 
@@ -37,8 +59,14 @@ class ReactiveEffect{
     try {
       // 额外处理...
       activeEffect = this; // 把当前的effect 赋值给 activeEffect
+
+      // effect 执行前，需要把上一次的依赖清空
+      preCleanEffect(this);
+
+
       return this.fn(); // 依赖收集
     } finally {
+      postCleanEffect(this); // 执行完fn函数后，把当前effect 中的依赖清空
       activeEffect = lastEffect; // 执行完fn函数后，把activeEffect 赋值为上一个effect
     }
   }
@@ -48,13 +76,44 @@ class ReactiveEffect{
   }
 }
 
+function cleanDepEffect(effect, dep) {
+  // 清除effect 中的依赖
+  dep.delete(effect); // 从当前属性的依赖map（dep）中删除当前effect
+  if (dep.size === 0) {
+    // 如果当前属性的依赖map（dep）中没有任何effect了，就把当前属性的依赖map（dep）清空
+    dep.cleanup();
+  }
+}
+
 // 双向记忆
+// 1. _trackId 用于记录执行次数（防止一个属性在当前effect中多次依赖收集），只收集一次
+// 2. 拿到上一次依赖的最后一个 和 这一次的进行比较
 // 收集齐dep记录了effect
 // effect的deps 记录了dep
 export function trackEffect(dep, effect) {
-  dep.set(effect, effect._trackId); // 把effect 放到当前属性的依赖map（dep）中, 后续可以根据值的变化触发此dep中存放的effect
-  // 还需要把 effectt 和 dep 关联起来
-  effect.deps[effect._depsLength++] = dep;
+  // 需要重新收集依赖，将不需要的移除掉
+  if (dep.get(effect) !== effect._trackId) {
+    dep.set(effect, effect._trackId); // 把effect 放到当前属性的依赖map（dep）中, 后续可以根据值的变化触发此dep中存放的effect
+
+    let oldDep = effect.deps[effect._depsLength]; // 直接取出最后一个来进行比较，因为上一轮的已经清空了，所以最后一个就是第一个
+    if (oldDep !== dep) {
+      if (oldDep) {
+        // 删除老的依赖
+        cleanDepEffect(effect, oldDep); // 从上一个依赖中删除当前effect
+      }
+      // 新增新的依赖
+      effect.deps[effect._depsLength++] = dep;
+    } else {
+      effect._depsLength++;
+    }
+
+    return; // 如果当前dep 中已经有了当前的effect，就直接返回
+  }
+
+
+  // dep.set(effect, effect._trackId); // 把effect 放到当前属性的依赖map（dep）中, 后续可以根据值的变化触发此dep中存放的effect
+  // // 还需要把 effectt 和 dep 关联起来
+  // effect.deps[effect._depsLength++] = dep;
 
 }
 

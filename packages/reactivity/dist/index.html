@@ -13,6 +13,7 @@
     let obj = {
       name: '张三',
       age: 18,
+      flag: true
     };
     const state1 = reactive(obj);
     const state2 = reactive(obj);
@@ -21,13 +22,38 @@
     // state1被代理过，一定有get 和 set 方法
     console.log(state1 === state3);
     console.log(state1.age, state1.name);
+    // effect(() => {
+    //   app.innerHTML = '姓名：' + state1.name + '，年龄：' + state1.age;
+    // })
+    //  setTimeout(() => {
+    //   state1.age++
+    // }, 1000);
+
+    // 条件渲染 引出依赖清理的由来
     effect(() => {
-      app.innerHTML = '姓名：' + state1.name + '，年龄：' + state1.age;
+      console.log('runner');
+      app.innerHTML = state1.flag ? '姓名：' + state1.name : '年龄：' + state1.age;
     })
 
+   
     setTimeout(() => {
-      state1.age++
+      state1.flag = false
+
+      setTimeout(() => {
+        console.log('state1.name 不应该变成李四',);
+        state1.name = '李四';
+      }, 2000);
     }, 1000);
+    // 我们需要一个算法，来对比不同分支切换的差异，diff算法
+    // 1. 对比两个分支的差异
+    // 2. 对比差异的地方，是否有依赖收集
+    // 3. 如果有依赖收集，我们需要清理掉旧的依赖
+    // 4. 执行新的依赖收集
+
+    // 一开始是 effect中有 [flag name]
+    // flag 切换为 false 时，依赖中有 [flag age]
+    // 所以我们需要清理掉 name 的依赖  需要一个简易的 diff算法 来实现这个效果
+
   </script>
 </body>
 </html>

@@ -12,6 +12,18 @@ function effect(fn, options = {}) {
   return _effect;
 }
 var activeEffect = null;
+function preCleanEffect(effect2) {
+  effect2._depsLength = 0;
+  effect2._trackId++;
+}
+function postCleanEffect(effect2) {
+  if (effect2.deps.length > effect2._depsLength) {
+    for (let i = effect2._depsLength; i < effect2.deps.length; i++) {
+      cleanDepEffect(effect2, effect2.deps[i]);
+    }
+    effect2.deps.length = effect2._depsLength;
+  }
+}
 var ReactiveEffect = class {
   // 表示默认创建的effect就是响应式对象
   // fn 就是用户传递的函数 如果fn中依赖的数据发生变化后，需要重新调度-> run()
@@ -35,8 +47,10 @@ var ReactiveEffect = class {
     let lastEffect = activeEffect;
     try {
       activeEffect = this;
+      preCleanEffect(this);
       return this.fn();
     } finally {
+      postCleanEffect(this);
       activeEffect = lastEffect;
     }
   }
@@ -44,9 +58,26 @@ var ReactiveEffect = class {
     this.active = false;
   }
 };
+function cleanDepEffect(effect2, dep) {
+  dep.delete(effect2);
+  if (dep.size === 0) {
+    dep.cleanup();
+  }
+}
 function trackEffect(dep, effect2) {
-  dep.set(effect2, effect2._trackId);
-  effect2.deps[effect2._depsLength++] = dep;
+  if (dep.get(effect2) !== effect2._trackId) {
+    dep.set(effect2, effect2._trackId);
+    let oldDep = effect2.deps[effect2._depsLength];
+    if (oldDep !== dep) {
+      if (oldDep) {
+        cleanDepEffect(effect2, oldDep);
+      }
+      effect2.deps[effect2._depsLength++] = dep;
+    } else {
+      effect2._depsLength++;
+    }
+    return;
+  }
 }
 function triggerEffect(dep) {
   for (let effect2 of dep.keys()) {
