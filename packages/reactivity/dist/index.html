@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试 reactive</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+    let app = document.getElementById('app');
+    import { reactive, effect } from './reactivity.js'
+    let obj = {
+      name: '张三',
+      age: 18,
+      count: 0,
+    };
+    const state1 = reactive(obj);
+    const state2 = reactive(obj);
+    const state3 = reactive(state1);
+    console.log(state1 === state2);
+    // state1被代理过，一定有get 和 set 方法
+    console.log(state1 === state3);
+    console.log(state1.count, state1.age, state1.name);
+    effect(() => {
+      // console.log(state1.count)
+      app.innerHTML = state1.count;
+    })
+    state1.count++
+
+    setTimeout(() => {
+      state1.count++
+    }, 1000);
+  </script>
+</body>
+</html>
