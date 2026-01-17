@@ -1,5 +1,5 @@
 
-import { track } from "./reactiveEffect";
+import { track, trigger } from "./reactiveEffect";
 
 // 响应式标志位 枚举编译后就是对象
 // 因为这里是属性，而symbol是值，所以这里用属性来判断是否是响应式对象，因此使用的是 ReactiveFlags 枚举
@@ -27,7 +27,12 @@ export const multableHandlers: ProxyHandler<any> = {
   set(target, p, newValue, receiver) {
     // 找到属性，让对应的effect重新执行
 
-    // 触发更新 todo...
-    return Reflect.set(target, p, newValue, receiver);
+    let oldValue = target[p];
+    let result = Reflect.set(target, p, newValue, receiver);
+    if (oldValue !== newValue) {
+      // 触发更新 todo...
+      trigger(target, p, newValue, oldValue);
+    }
+    return result;
   },
 }

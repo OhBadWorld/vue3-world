@@ -13,7 +13,6 @@
     let obj = {
       name: '张三',
       age: 18,
-      count: 0,
     };
     const state1 = reactive(obj);
     const state2 = reactive(obj);
@@ -21,15 +20,13 @@
     console.log(state1 === state2);
     // state1被代理过，一定有get 和 set 方法
     console.log(state1 === state3);
-    console.log(state1.count, state1.age, state1.name);
+    console.log(state1.age, state1.name);
     effect(() => {
-      // console.log(state1.count)
-      app.innerHTML = state1.count;
+      app.innerHTML = '姓名：' + state1.name + '，年龄：' + state1.age;
     })
-    state1.count++
 
     setTimeout(() => {
-      state1.count++
+      state1.age++
     }, 1000);
   </script>
 </body>

@@ -39,3 +39,6 @@ export function reactive(target) {
 // 为啥要使用 reflect 方法？
 // 1. 可以避免无限循环的问题
 // 2. 可以避免直接访问对象自身的属性，而是通过代理对象去访问代理对象的属性  
+
+// 总体来讲 （targetMap在 reactiveEffect.ts 中）
+// 映射表(targetMap)记录属性 对应的 effect实例， effectt实例上有run方法可以重新执行，set的时候调用当前effect实例的run方法就可以了
