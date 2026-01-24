@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试 ref 实现原理</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+    let app = document.getElementById('app');
+    import { reactive, effect, ref } from './reactivity.js'
+    // reactive 只能对 对象 进行处理
+
+    let flag = ref(false); // wrapper 对象 包装类
+    // ref 可以对 基本类型 进行处理
+    // flag 就约等于 {
+    //   _v: false,
+    //   get value() { // 取值 收集effect
+    //     return this._v;
+    //   },
+    //   set value(newVal) { // 修改值 更新effect
+    //     this._v = newVal;
+    //   }
+    // }
+
+    console.log(flag.value);
+
+    effect(() => {
+      app.innerHTML = flag.value ? 'yes' : 'no';
+    })
+   
+    setTimeout(() => {
+      flag.value = true;
+      console.log(22, flag.value);
+    }, 1000);
+
+
+
+  </script>
+</body>
+</html>

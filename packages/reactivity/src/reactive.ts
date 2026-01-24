@@ -42,3 +42,8 @@ export function reactive(target) {
 
 // 总体来讲 （targetMap在 reactiveEffect.ts 中）
 // 映射表(targetMap)记录属性 对应的 effect实例， effectt实例上有run方法可以重新执行，set的时候调用当前effect实例的run方法就可以了
+
+
+export function toReactive(value) {
+  return isObject(value) ? reactive(value) : value;
+} 

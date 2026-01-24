@@ -179,10 +179,57 @@ var createReactiveObject = (target) => {
 function reactive(target) {
   return createReactiveObject(target);
 }
+function toReactive(value) {
+  return isObject(value) ? reactive(value) : value;
+}
+
+// packages/reactivity/src/ref.ts
+function ref(value) {
+  return createRef(value);
+}
+function createRef(value) {
+  return new RefImpl(value);
+}
+var RefImpl = class {
+  // 用于收集对应的effect
+  constructor(rawValue) {
+    this.rawValue = rawValue;
+    this.__v_isRef = true;
+    this._value = toReactive(rawValue);
+  }
+  // 类的属性访问器
+  get value() {
+    trackRefValue(this);
+    return this._value;
+  }
+  set value(newVal) {
+    if (newVal !== this.rawValue) {
+      this.rawValue = newVal;
+      this._value = newVal;
+      triggerRefValue(this);
+    }
+  }
+};
+function trackRefValue(ref2) {
+  if (activeEffect) {
+    trackEffect(
+      ref2.dep = createDep(() => ref2.dep = void 0, "undefined"),
+      activeEffect
+    );
+  }
+}
+function triggerRefValue(ref2) {
+  let dep = ref2.dep;
+  if (dep) {
+    triggerEffect(dep);
+  }
+}
 export {
   activeEffect,
   effect,
   reactive,
+  ref,
+  toReactive,
   trackEffect,
   triggerEffect
 };
