@@ -9,7 +9,7 @@
   <div id="app"></div>
   <script type="module">
     let app = document.getElementById('app');
-    import { reactive, effect, ref } from './reactivity.js'
+    import { reactive, effect, ref, toRef, toRefs, proxyRefs } from './reactivity.js'
     // reactive 只能对 对象 进行处理
 
     let flag = ref(false); // wrapper 对象 包装类
@@ -35,7 +35,26 @@
       console.log(22, flag.value);
     }, 1000);
 
+    let state = reactive({
+      name: '张三',
+      age: 18,
+    });
 
+    // let name = toRef(state, 'name'); // name 是一个 ref 对象 还是基于proxy来获取值
+    // console.log('toRef', name, name.value);
+
+    let { name, age } = toRefs(state);
+    console.log('toRefs', name, age);
+
+
+    // 模板自动解包 ref 对象
+    // 模板中可以直接使用 ref 对象的 value 属性，而不需要使用 ref.value 来获取值
+    let proxyState = proxyRefs(state);
+    console.log('proxyRefs', proxyState);
+
+    effect(() => {
+      app.innerHTML = proxyState.name + '，' + proxyState.age;
+    })
 
   </script>
 </body>

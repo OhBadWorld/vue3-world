@@ -224,12 +224,55 @@ function triggerRefValue(ref2) {
     triggerEffect(dep);
   }
 }
+var ObjectRefImpl = class {
+  // 增加ref标识
+  constructor(_object, _key) {
+    this._object = _object;
+    this._key = _key;
+    this.__v_isRef = true;
+  }
+  get value() {
+    return this._object[this._key];
+  }
+  set value(newVal) {
+    this._object[this._key] = newVal;
+  }
+};
+function toRef(Object2, key) {
+  return new ObjectRefImpl(Object2, key);
+}
+function toRefs(state) {
+  let ret = {};
+  for (let key in state) {
+    ret[key] = toRef(state, key);
+  }
+  return ret;
+}
+function proxyRefs(ObjectWithRefs) {
+  return new Proxy(ObjectWithRefs, {
+    get(target, key, receiver) {
+      let val = Reflect.get(target, key, receiver);
+      return val.__v_isRef ? val.value : val;
+    },
+    set(target, key, value, receiver) {
+      let val = Reflect.get(target, key, receiver);
+      if (val.__v_isRef) {
+        val.value = value;
+        return true;
+      }
+      return Reflect.set(target, key, value, receiver);
+    }
+  });
+}
 export {
   activeEffect,
   effect,
+  proxyRefs,
   reactive,
   ref,
   toReactive,
+  toRef,
+  toRefs,
   trackEffect,
   triggerEffect
 };
