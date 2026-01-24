@@ -43,6 +43,8 @@ var ReactiveEffect = class {
     // 表示当前effect 依赖了哪些属性依赖
     this._depsLength = 0;
     // 表示当前effect 依赖了多少个属性依赖
+    this._running = 0;
+    // 表示当前effect 是否正在执行中
     this.active = true;
     this.fn = fn;
   }
@@ -54,8 +56,10 @@ var ReactiveEffect = class {
     try {
       activeEffect = this;
       preCleanEffect(this);
+      this._running++;
       return this.fn();
     } finally {
+      this._running--;
       postCleanEffect(this);
       activeEffect = lastEffect;
     }
@@ -89,9 +93,9 @@ function triggerEffect(dep) {
   for (let effect2 of dep.keys()) {
     console.log("effect", effect2);
     if (effect2.scheduler) {
-      effect2.scheduler();
-    } else {
-      effect2.run();
+      if (!effect2._running) {
+        effect2.scheduler();
+      }
     }
   }
 }
@@ -139,7 +143,11 @@ var multableHandlers = {
       return true;
     }
     track(target, p);
-    return Reflect.get(target, p, receiver);
+    let res = Reflect.get(target, p, receiver);
+    if (isObject(res)) {
+      return reactive(res);
+    }
+    return res;
   },
   set(target, p, newValue, receiver) {
     let oldValue = target[p];

@@ -1,4 +1,6 @@
 
+import { isObject } from "@vue/shared";
+import { reactive } from "./reactive";
 import { track, trigger } from "./reactiveEffect";
 
 // 响应式标志位 枚举编译后就是对象
@@ -22,7 +24,11 @@ export const multableHandlers: ProxyHandler<any> = {
     // 当取值的时候，应该让响应式属性 和 effect 映射起来  （收集依赖）
     // return target[key]; // 这种方式有隐患， 如果对象中的方法又返回了当前对象的方法，而方式是读取对象的属性，这个时候直接走对象自身的属性，不会被代理，不会触发get方法
     // return receiver[key]; // 这种方式有隐患， 如果对象中的方法又返回了当前对象的属性，会一直不停的触发get方法，会导致无限循环
-    return Reflect.get(target, p, receiver); // Reflect.get方法，让代理对象内部的this 指向了代理对象receiver， 而不是指向了目标对象
+    let res = Reflect.get(target, p, receiver); // Reflect.get方法，让代理对象内部的this 指向了代理对象receiver， 而不是指向了目标对象
+    if (isObject(res)) { // 懒代理 只有当取的值也是对象的时候，才会去代理这个对象 递归代理
+      return reactive(res);
+    }
+    return res;
   },
   set(target, p, newValue, receiver) {
     // 找到属性，让对应的effect重新执行

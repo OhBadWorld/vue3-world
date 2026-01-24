@@ -49,6 +49,7 @@ class ReactiveEffect{
   _trackId = 0; // 表示当前effect执行了几次
   deps = []; // 表示当前effect 依赖了哪些属性依赖
   _depsLength = 0; // 表示当前effect 依赖了多少个属性依赖
+  _running = 0; // 表示当前effect 是否正在执行中
 
   public active = true; // 表示默认创建的effect就是响应式对象
 
@@ -69,9 +70,10 @@ class ReactiveEffect{
       // effect 执行前，需要把上一次的依赖清空
       preCleanEffect(this);
 
-
+      this._running++; // 表示当前effect 正在执行中
       return this.fn(); // 依赖收集
     } finally {
+      this._running--; // 表示当前effect 执行完毕 ，可以重新执行了
       postCleanEffect(this); // 执行完fn函数后，把当前effect 中的依赖清空
       activeEffect = lastEffect; // 执行完fn函数后，把activeEffect 赋值为上一个effect
     }
@@ -128,10 +130,9 @@ export function triggerEffect(dep) { // dep 是属性的依赖map 就是映射�
   for (let effect of dep.keys()) {
     console.log('effect', effect);
     if (effect.scheduler) {
-      effect.scheduler(); // -> 等价于effect.run()
-    }
-    else {
-      effect.run();
+      if (!effect._running) { // 如果当前effect 没有在执行中，才执行scheduler函数
+        effect.scheduler(); // -> 等价于effect.run()
+      }
     }
   }
 }
